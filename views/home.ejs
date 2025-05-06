@@ -1,0 +1,1668 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Emotion AI | Real-time Facial Expression Analysis</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <style>
+    :root {
+      --primary: #1e293b;;
+      --primary-light: #818cf8;
+      --primary-dark:#6366f1;
+      --secondary: #10b981;
+      --secondary-light: #34d399;
+      --dark: #4f46e5;
+      --darker: #0f172a;
+      --light: #f8fafc;
+      --lighter: #ffffff;
+      --gray: #94a3b8;
+      --success: #10b981;
+      --warning: #f59e0b;
+      --danger: #ef4444;
+      --info: #3b82f6;
+      
+      --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.04);
+      --shadow: 0 4px 6px rgba(0, 0, 0, 0.1), 0 1px 3px rgba(0, 0, 0, 0.08);
+      --shadow-md: 0 10px 15px rgba(0, 0, 0, 0.1), 0 4px 6px rgba(0, 0, 0, 0.05);
+      --shadow-lg: 0 20px 25px rgba(0, 0, 0, 0.1), 0 10px 10px rgba(0, 0, 0, 0.04);
+      --shadow-xl: 0 25px 50px rgba(0, 0, 0, 0.15);
+      
+      --transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+      --transition-slow: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+      
+      --radius-sm: 4px;
+      --radius: 8px;
+      --radius-md: 12px;
+      --radius-lg: 16px;
+      --radius-xl: 24px;
+      --radius-full: 9999px;
+      
+      /* Light theme */
+      --bg-gradient: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+      --card-bg: rgba(255, 255, 255, 0.15);
+      --card-border: 1px solid rgba(255, 255, 255, 0.2);
+      --text-color: #f8fafc;
+      --text-muted: rgba(248, 250, 252, 0.7);
+      --stat-bg: rgba(255, 255, 255, 0.1);
+      --overlay-bg: rgba(15, 23, 42, 0.7);
+    }
+
+    /* Dark theme */
+    .dark-theme {
+      --bg-gradient: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
+      --card-bg: rgba(15, 23, 42, 0.6);
+      --card-border: 1px solid rgba(255, 255, 255, 0.1);
+      --text-color: #f8fafc;
+      --text-muted: rgba(248, 250, 252, 0.6);
+      --stat-bg: rgba(15, 23, 42, 0.4);
+      --overlay-bg: rgba(2, 6, 23, 0.8);
+    }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Inter', sans-serif;
+      background: var(--bg-gradient);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      color: var(--text-color);
+      overflow-x: hidden;
+      padding: 20px;
+      transition: var(--transition-slow);
+      line-height: 1.5;
+    }
+
+    .glass-card {
+      background: var(--card-bg);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border-radius: var(--radius-xl);
+      border: var(--card-border);
+      box-shadow: var(--shadow-xl);
+      padding: 40px;
+      width: 100%;
+      max-width: 1200px;
+      margin: 20px 0;
+      transition: var(--transition-slow);
+    }
+
+    header {
+      text-align: center;
+      margin-bottom: 40px;
+      position: relative;
+    }
+
+    h1 {
+      font-size: 3rem;
+      font-weight: 700;
+      margin-bottom: 12px;
+      background: linear-gradient(to right, var(--lighter), var(--primary-light));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      position: relative;
+      display: inline-block;
+      letter-spacing: -0.5px;
+    }
+
+    h1::after {
+      content: '';
+      position: absolute;
+      bottom: -12px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 100px;
+      height: 4px;
+      background: var(--secondary);
+      border-radius: var(--radius-full);
+    }
+
+    .subtitle {
+      font-size: 1.2rem;
+      color: var(--text-muted);
+      max-width: 700px;
+      margin: 0 auto;
+      font-weight: 400;
+    }
+
+    .detector-container {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 40px;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .video-container {
+      position: relative;
+      border-radius: var(--radius-lg);
+      overflow: hidden;
+      box-shadow: var(--shadow-lg);
+      flex: 1;
+      min-width: 320px;
+      max-width: 600px;
+      aspect-ratio: 16/9;
+      background: var(--darker);
+    }
+
+    #video {
+      width: 100%;
+      height: 100%;
+      display: block;
+      object-fit: cover;
+      background: var(--darker);
+    }
+
+    .video-overlay {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      background: var(--overlay-bg);
+      opacity: 0;
+      transition: var(--transition);
+      gap: 16px;
+      padding: 20px;
+    }
+
+    .video-container:hover .video-overlay {
+      opacity: 1;
+    }
+
+    .video-controls {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+
+    .results-panel {
+      flex: 1;
+      min-width: 320px;
+      max-width: 500px;
+      display: flex;
+      flex-direction: column;
+      gap: 24px;
+    }
+
+    .emotion-display {
+      background: var(--card-bg);
+      border-radius: var(--radius-lg);
+      padding: 32px;
+      text-align: center;
+      transition: var(--transition-slow);
+      box-shadow: var(--shadow);
+      border: var(--card-border);
+    }
+
+    .emotion-value {
+      font-size: 2.8rem;
+      font-weight: 700;
+      margin: 16px 0;
+      min-height: 80px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+    }
+
+    .emotion-tagline {
+      font-size: 1.2rem;
+      color: var(--text-muted);
+      margin-bottom: 8px;
+      min-height: 40px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .emotion-icon {
+      font-size: 3.5rem;
+      margin-bottom: 16px;
+    }
+
+    .emotion-meter {
+      height: 12px;
+      background: var(--stat-bg);
+      border-radius: var(--radius-full);
+      margin-top: 24px;
+      overflow: hidden;
+      position: relative;
+    }
+
+    .emotion-progress {
+      height: 100%;
+      background: var(--secondary);
+      width: 0%;
+      transition: width 0.6s ease-out;
+      border-radius: var(--radius-full);
+    }
+
+    .controls {
+      display: flex;
+      gap: 16px;
+      justify-content: center;
+      flex-wrap: wrap;
+    }
+
+    .btn {
+      padding: 14px 28px;
+      border-radius: var(--radius-full);
+      border: none;
+      font-weight: 600;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      transition: var(--transition);
+      box-shadow: var(--shadow-sm);
+      font-size: 1rem;
+      letter-spacing: 0.2px;
+    }
+
+    .btn-primary {
+      background: var(--primary);
+      color: var(--lighter);
+    }
+
+    .btn-primary:hover {
+      background: var(--primary-dark);
+      transform: translateY(-2px);
+      box-shadow: var(--shadow);
+    }
+
+    .btn-secondary {
+      background: var(--stat-bg);
+      color: var(--lighter);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    .btn-secondary:hover {
+      background: rgba(255, 255, 255, 0.15);
+      transform: translateY(-2px);
+      box-shadow: var(--shadow);
+    }
+
+    .btn-sm {
+      padding: 10px 16px;
+      font-size: 0.9rem;
+    }
+
+    .btn:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+      transform: none !important;
+      box-shadow: none !important;
+    }
+
+    .emotion-stats {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 16px;
+      margin-top: 16px;
+    }
+
+    .stat-item {
+      background: var(--stat-bg);
+      padding: 16px;
+      border-radius: var(--radius-md);
+      text-align: center;
+      transition: var(--transition);
+      border: 1px solid rgba(255, 255, 255, 0.05);
+    }
+
+    .stat-item:hover {
+      transform: translateY(-4px);
+      box-shadow: var(--shadow);
+    }
+
+    .stat-value {
+      font-weight: 700;
+      font-size: 1.4rem;
+      margin-bottom: 4px;
+    }
+
+    .stat-label {
+      font-size: 0.85rem;
+      color: var(--text-muted);
+      font-weight: 500;
+    }
+
+    footer {
+      margin-top: 40px;
+      text-align: center;
+      font-size: 0.9rem;
+      color: var(--text-muted);
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .footer-links {
+      display: flex;
+      gap: 16px;
+      justify-content: center;
+    }
+
+    .footer-links a {
+      color: var(--text-muted);
+      transition: var(--transition);
+    }
+
+    .footer-links a:hover {
+      color: var(--lighter);
+    }
+
+    /* Theme toggle button */
+    .theme-toggle {
+      position: absolute;
+      top: 0;
+      right: 0;
+      background: var(--stat-bg);
+      border: none;
+      width: 44px;
+      height: 44px;
+      border-radius: var(--radius-full);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      color: var(--text-color);
+      transition: var(--transition);
+      box-shadow: var(--shadow-sm);
+    }
+
+    .theme-toggle:hover {
+      background: rgba(255, 255, 255, 0.2);
+      transform: rotate(30deg) scale(1.05);
+      box-shadow: var(--shadow);
+    }
+
+    /* Emotion specific styles */
+    .happy {
+      color: var(--warning);
+    }
+    .happy .emotion-progress {
+      background: var(--warning);
+    }
+
+    .sad {
+      color: var(--info);
+    }
+    .sad .emotion-progress {
+      background: var(--info);
+    }
+
+    .angry {
+      color: var(--danger);
+    }
+    .angry .emotion-progress {
+      background: var(--danger);
+    }
+
+    .surprised {
+      color: var(--primary-light);
+    }
+    .surprised .emotion-progress {
+      background: var(--primary-light);
+    }
+
+    .fearful {
+      color: var(--gray);
+    }
+    .fearful .emotion-progress {
+      background: var(--gray);
+    }
+
+    .disgusted {
+      color: var(--success);
+    }
+    .disgusted .emotion-progress {
+      background: var(--success);
+    }
+
+    .neutral {
+      color: var(--text-color);
+    }
+    .neutral .emotion-progress {
+      background: var(--text-color);
+    }
+
+    /* 3D Avatar Styles */
+    .avatar-container {
+      width: 200px;
+      height: 200px;
+      margin: 0 auto 24px;
+      position: relative;
+      perspective: 1000px;
+    }
+
+    .avatar {
+      width: 100%;
+      height: 100%;
+      position: relative;
+      transform-style: preserve-3d;
+      transition: var(--transition-slow);
+    }
+
+    .avatar-face {
+      position: absolute;
+      width: 100%;
+      height: 100%;
+      backface-visibility: hidden;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .avatar-front {
+      transform: rotateY(0deg);
+    }
+
+    .avatar-back {
+      transform: rotateY(180deg);
+      background: var(--card-bg);
+      border-radius: var(--radius-full);
+      border: var(--card-border);
+      box-shadow: var(--shadow);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+      text-align: center;
+    }
+
+    .avatar-head {
+      width: 140px;
+      height: 180px;
+      background: #FFDBAC;
+      border-radius: 70px 70px 40px 40px;
+      position: relative;
+      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+      transition: var(--transition-slow);
+      transform-style: preserve-3d;
+    }
+
+    .avatar-hair {
+      position: absolute;
+      width: 160px;
+      height: 80px;
+      background: #2C222B;
+      border-radius: 80px 80px 0 0;
+      top: -40px;
+      left: -10px;
+      z-index: 2;
+    }
+
+    .avatar-eyebrows {
+      position: absolute;
+      width: 100%;
+      top: 60px;
+      display: flex;
+      justify-content: center;
+      gap: 24px;
+      transition: var(--transition);
+      z-index: 3;
+    }
+
+    .eyebrow {
+      width: 28px;
+      height: 8px;
+      background: #2C222B;
+      border-radius: 4px;
+      transition: var(--transition);
+    }
+
+    .avatar-eyes {
+      position: absolute;
+      width: 100%;
+      top: 80px;
+      display: flex;
+      justify-content: center;
+      gap: 24px;
+      transition: var(--transition);
+      z-index: 3;
+    }
+
+    .eye {
+      width: 24px;
+      height: 12px;
+      background: #2d3436;
+      border-radius: 12px;
+      position: relative;
+      transition: var(--transition);
+    }
+
+    .eye::after {
+      content: '';
+      position: absolute;
+      width: 8px;
+      height: 8px;
+      background: white;
+      border-radius: 50%;
+      top: 2px;
+      left: 4px;
+    }
+
+    .avatar-mouth {
+      position: absolute;
+      width: 50px;
+      height: 20px;
+      background: #E75480;
+      border-radius: 0 0 25px 25px;
+      bottom: 50px;
+      left: 50%;
+      transform: translateX(-50%);
+      transition: var(--transition-slow);
+      z-index: 3;
+    }
+
+    /* Emotion-specific avatar states */
+    .happy .avatar-head {
+      transform: rotate(0deg) translateZ(20px);
+    }
+
+    .happy .avatar-eyes {
+      top: 80px;
+      gap: 24px;
+    }
+
+    .happy .eye {
+      height: 12px;
+      border-radius: 12px;
+    }
+
+    .happy .avatar-eyebrows {
+      top: 60px;
+    }
+
+    .happy .eyebrow {
+      height: 8px;
+    }
+
+    .happy .avatar-mouth {
+      width: 50px;
+      height: 25px;
+      border-radius: 0 0 25px 25px;
+      background: #E75480;
+    }
+
+    .sad .avatar-head {
+      transform: rotate(0deg) translateZ(10px);
+    }
+
+    .sad .avatar-eyes {
+      top: 80px;
+      gap: 24px;
+    }
+
+    .sad .eye {
+      height: 10px;
+      border-radius: 10px;
+    }
+
+    .sad .avatar-eyebrows {
+      top: 65px;
+    }
+
+    .sad .eyebrow {
+      height: 8px;
+      transform: rotate(12deg);
+    }
+
+    .sad .avatar-mouth {
+      width: 40px;
+      height: 15px;
+      border-radius: 0 0 20px 20px;
+      background: #2d3436;
+    }
+
+    .angry .avatar-head {
+      transform: rotate(5deg) translateZ(10px);
+      background: #FFB347;
+    }
+
+    .angry .avatar-eyes {
+      top: 80px;
+      gap: 20px;
+    }
+
+    .angry .eye {
+      height: 8px;
+      border-radius: 4px;
+    }
+
+    .angry .avatar-eyebrows {
+      top: 55px;
+      gap: 20px;
+    }
+
+    .angry .eyebrow {
+      height: 10px;
+      transform: rotate(-20deg);
+    }
+
+    .angry .avatar-mouth {
+      width: 40px;
+      height: 10px;
+      border-radius: 5px;
+      background: #d63031;
+      bottom: 45px;
+    }
+
+    .surprised .avatar-head {
+      transform: rotate(0deg) translateZ(30px);
+    }
+
+    .surprised .avatar-eyes {
+      top: 80px;
+      gap: 24px;
+    }
+
+    .surprised .eye {
+      width: 24px;
+      height: 24px;
+      border-radius: 50%;
+    }
+
+    .surprised .avatar-eyebrows {
+      top: 50px;
+    }
+
+    .surprised .eyebrow {
+      height: 8px;
+      transform: translateY(-8px);
+    }
+
+    .surprised .avatar-mouth {
+      width: 30px;
+      height: 30px;
+      border-radius: 50%;
+      background: #E75480;
+      bottom: 40px;
+    }
+
+    .fearful .avatar-head {
+      transform: rotate(0deg) translateZ(5px);
+    }
+
+    .fearful .avatar-eyes {
+      top: 85px;
+      gap: 28px;
+    }
+
+    .fearful .eye {
+      width: 28px;
+      height: 6px;
+      border-radius: 6px;
+    }
+
+    .fearful .avatar-eyebrows {
+      top: 65px;
+    }
+
+    .fearful .eyebrow {
+      height: 8px;
+      transform: translateY(8px);
+    }
+
+    .fearful .avatar-mouth {
+      width: 40px;
+      height: 6px;
+      border-radius: 6px;
+      background: #2d3436;
+      bottom: 55px;
+    }
+
+    .disgusted .avatar-head {
+      transform: rotate(-5deg) translateZ(10px);
+      background: #C1E1C1;
+    }
+
+    .disgusted .avatar-eyes {
+      top: 80px;
+      gap: 24px;
+    }
+
+    .disgusted .eye {
+      height: 10px;
+      border-radius: 0 0 10px 10px;
+    }
+
+    .disgusted .avatar-eyebrows {
+      top: 65px;
+    }
+
+    .disgusted .eyebrow {
+      height: 8px;
+      transform: rotate(8deg);
+    }
+
+    .disgusted .avatar-mouth {
+      width: 40px;
+      height: 6px;
+      border-radius: 6px;
+      background: #2d3436;
+      bottom: 50px;
+    }
+
+    .neutral .avatar-head {
+      transform: rotate(0deg) translateZ(15px);
+    }
+
+    .neutral .avatar-eyes {
+      top: 80px;
+      gap: 24px;
+    }
+
+    .neutral .eye {
+      height: 10px;
+      border-radius: 5px;
+    }
+
+    .neutral .avatar-eyebrows {
+      top: 65px;
+    }
+
+    .neutral .eyebrow {
+      height: 8px;
+    }
+
+    .neutral .avatar-mouth {
+      width: 40px;
+      height: 6px;
+      border-radius: 6px;
+      background: #2d3436;
+      bottom: 50px;
+    }
+
+    /* Flip animation */
+    .flipped .avatar {
+      transform: rotateY(180deg);
+    }
+
+    /* Loading state */
+    .loading .avatar-head {
+      animation: pulse 1.5s infinite;
+    }
+
+    .loading .avatar-eyes {
+      top: 80px;
+    }
+
+    .loading .eye {
+      height: 8px;
+      border-radius: 4px;
+      animation: blink 2s infinite;
+    }
+
+    .loading .avatar-mouth {
+      width: 40px;
+      height: 6px;
+      border-radius: 6px;
+      background: #2d3436;
+      bottom: 50px;
+      animation: mouthMove 3s infinite;
+    }
+
+    /* Error state */
+    .error .avatar-head {
+      background: #636e72;
+    }
+
+    .error .avatar-eyes {
+      top: 80px;
+    }
+
+    .error .eye {
+      height: 8px;
+      border-radius: 4px;
+    }
+
+    .error .avatar-mouth {
+      width: 40px;
+      height: 6px;
+      border-radius: 6px;
+      background: #d63031;
+      bottom: 50px;
+    }
+
+    /* No face state */
+    .no-face .avatar-head {
+      background: #dfe6e9;
+    }
+
+    .no-face .avatar-eyes {
+      top: 80px;
+    }
+
+    .no-face .eye {
+      height: 8px;
+      border-radius: 4px;
+    }
+
+    .no-face .avatar-mouth {
+      width: 40px;
+      height: 6px;
+      border-radius: 6px;
+      background: #2d3436;
+      bottom: 50px;
+    }
+
+    /* Animations */
+    @keyframes pulse {
+      0% { transform: scale(1) translateZ(15px); }
+      50% { transform: scale(1.05) translateZ(20px); }
+      100% { transform: scale(1) translateZ(15px); }
+    }
+
+    @keyframes blink {
+      0%, 45%, 55%, 100% { height: 8px; border-radius: 4px; }
+      50% { height: 2px; border-radius: 4px 4px 0 0; }
+    }
+
+    @keyframes mouthMove {
+      0%, 100% { width: 40px; height: 6px; bottom: 50px; }
+      50% { width: 30px; height: 12px; bottom: 45px; }
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(20px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .fade-in {
+      animation: fadeIn 0.6s ease-out forwards;
+    }
+
+    @keyframes bounce {
+      0%, 100% { transform: translateY(0) translateZ(20px); }
+      50% { transform: translateY(-10px) translateZ(30px); }
+    }
+
+    .bounce {
+      animation: bounce 1s infinite;
+    }
+
+    @keyframes float {
+      0%, 100% { transform: translateY(0) rotate(0deg); }
+      50% { transform: translateY(-10px) rotate(5deg); }
+    }
+
+    .float {
+      animation: float 3s ease-in-out infinite;
+    }
+
+    /* Tooltip */
+    .tooltip {
+      position: relative;
+      display: inline-block;
+    }
+
+    .tooltip .tooltip-text {
+      visibility: hidden;
+      width: 200px;
+      background-color: var(--darker);
+      color: var(--light);
+      text-align: center;
+      border-radius: var(--radius-sm);
+      padding: 8px;
+      position: absolute;
+      z-index: 1;
+      bottom: 125%;
+      left: 50%;
+      transform: translateX(-50%);
+      opacity: 0;
+      transition: var(--transition);
+      font-size: 0.9rem;
+      box-shadow: var(--shadow-md);
+    }
+
+    .tooltip:hover .tooltip-text {
+      visibility: visible;
+      opacity: 1;
+    }
+
+    /* Responsive */
+    @media (max-width: 1024px) {
+      .glass-card {
+        padding: 32px;
+      }
+      
+      h1 {
+        font-size: 2.5rem;
+      }
+      
+      .subtitle {
+        font-size: 1.1rem;
+      }
+      
+      .emotion-value {
+        font-size: 2.4rem;
+      }
+      
+      .avatar-container {
+        width: 180px;
+        height: 180px;
+      }
+      
+      .avatar-head {
+        width: 120px;
+        height: 160px;
+      }
+    }
+
+    @media (max-width: 768px) {
+      .glass-card {
+        padding: 24px;
+        border-radius: var(--radius-lg);
+      }
+      
+      h1 {
+        font-size: 2rem;
+      }
+      
+      .subtitle {
+        font-size: 1rem;
+      }
+      
+      .detector-container {
+        flex-direction: column;
+        gap: 24px;
+      }
+      
+      .video-container, .results-panel {
+        max-width: 100%;
+      }
+
+      .avatar-container {
+        width: 160px;
+        height: 160px;
+      }
+
+      .avatar-head {
+        width: 110px;
+        height: 140px;
+      }
+
+      .avatar-eyes {
+        top: 70px;
+      }
+
+      .avatar-eyebrows {
+        top: 50px;
+      }
+
+      .avatar-mouth {
+        bottom: 40px;
+      }
+      
+      .emotion-stats {
+        grid-template-columns: 1fr 1fr;
+      }
+    }
+
+    @media (max-width: 480px) {
+      .glass-card {
+        padding: 20px;
+      }
+      
+      h1 {
+        font-size: 1.8rem;
+      }
+      
+      .btn {
+        padding: 12px 20px;
+        font-size: 0.9rem;
+      }
+      
+      .emotion-value {
+        font-size: 2rem;
+      }
+      
+      .emotion-stats {
+        grid-template-columns: 1fr;
+      }
+      
+      .avatar-container {
+        width: 140px;
+        height: 140px;
+      }
+    }
+
+    /* Loading spinner */
+    .spinner {
+      width: 50px;
+      height: 50px;
+      border: 5px solid rgba(255, 255, 255, 0.2);
+      border-radius: var(--radius-full);
+      border-top: 5px solid var(--secondary);
+      animation: spin 1s linear infinite;
+      margin: 0 auto;
+    }
+
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+
+    /* Progress bar animation */
+    @keyframes progress {
+      0% { background-position: 0% 50%; }
+      50% { background-position: 100% 50%; }
+      100% { background-position: 0% 50%; }
+    }
+
+    /* Floating particles */
+    .particles {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+      z-index: -1;
+      overflow: hidden;
+    }
+
+    .particle {
+      position: absolute;
+      background: rgba(255, 255, 255, 0.5);
+      border-radius: var(--radius-full);
+      animation: float-particle 15s infinite linear;
+    }
+
+    @keyframes float-particle {
+      0% {
+        transform: translateY(0) translateX(0);
+        opacity: 0;
+      }
+      10% {
+        opacity: 1;
+      }
+      90% {
+        opacity: 1;
+      }
+      100% {
+        transform: translateY(-100vh) translateX(100px);
+        opacity: 0;
+      }
+    }
+
+    /* Flip button */
+    .flip-btn {
+      position: absolute;
+      bottom: 16px;
+      right: 16px;
+      background: var(--stat-bg);
+      border: none;
+      width: 36px;
+      height: 36px;
+      border-radius: var(--radius-full);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      color: var(--text-color);
+      transition: var(--transition);
+      box-shadow: var(--shadow-sm);
+      z-index: 10;
+    }
+
+    .flip-btn:hover {
+      background: rgba(255, 255, 255, 0.2);
+      transform: rotate(90deg);
+      box-shadow: var(--shadow);
+    }
+
+    /* Stats highlight */
+    .stat-highlight {
+      position: absolute;
+      top: -8px;
+      right: -8px;
+      background: var(--secondary);
+      color: var(--darker);
+      width: 24px;
+      height: 24px;
+      border-radius: var(--radius-full);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.7rem;
+      font-weight: 700;
+      box-shadow: var(--shadow-sm);
+    }
+  </style>
+</head>
+<body>
+  <!-- Floating particles -->
+  <div class="particles" id="particles"></div>
+  
+  <div class="glass-card fade-in">
+    <header>
+      <button class="theme-toggle" id="themeToggle">
+        <i class="fas fa-moon"></i>
+      </button>
+      <h1>Emotion AI</h1>
+      <p class="subtitle">Real-time facial expression analysis powered by advanced machine learning algorithms</p>
+    </header>
+
+    <div class="detector-container">
+      <div class="video-container">
+        <video id="video" autoplay muted playsinline></video>
+        <div class="video-overlay">
+          <div class="video-controls">
+            <button class="btn btn-secondary btn-sm" id="toggleCamera">
+              <i class="fas fa-camera-retro"></i> Switch Camera
+            </button>
+            <button class="btn btn-secondary btn-sm tooltip" id="toggleMirror">
+              <i class="fas fa-mirror"></i> Mirror
+              <span class="tooltip-text">Toggle mirror mode for selfie view</span>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div class="results-panel">
+        <div class="avatar-container" id="avatarContainer">
+          <div class="avatar">
+            <div class="avatar-face avatar-front">
+              <div class="avatar-hair"></div>
+              <div class="avatar-head"></div>
+              <div class="avatar-eyebrows">
+                <div class="eyebrow"></div>
+                <div class="eyebrow"></div>
+              </div>
+              <div class="avatar-eyes">
+                <div class="eye"></div>
+                <div class="eye"></div>
+              </div>
+              <div class="avatar-mouth"></div>
+            </div>
+            <div class="avatar-face avatar-back">
+              <i class="fas fa-brain" style="font-size: 3rem; margin-bottom: 16px; color: var(--primary-light);"></i>
+              <h3 style="margin-bottom: 8px;">Emotion Analysis</h3>
+              <p style="color: var(--text-muted); font-size: 0.9rem;">Our AI is analyzing your facial expressions in real-time</p>
+            </div>
+          </div>
+        </div>
+        <button class="flip-btn" id="flipBtn">
+          <i class="fas fa-sync-alt"></i>
+        </button>
+        
+        <div class="emotion-display">
+          <div class="emotion-value" id="emotion">
+            <div class="spinner"></div>
+          </div>
+          <div class="emotion-tagline" id="tagline">
+            Initializing emotion detection...
+          </div>
+          <div class="emotion-meter">
+            <div class="emotion-progress" id="confidenceMeter"></div>
+          </div>
+        </div>
+
+        <div class="emotion-stats">
+          <div class="stat-item">
+            <div class="stat-value" id="happyStat">0%</div>
+            <div class="stat-label">Happiness</div>
+          </div>
+          <div class="stat-item">
+            <div class="stat-value" id="sadStat">0%</div>
+            <div class="stat-label">Sadness</div>
+          </div>
+          <div class="stat-item">
+            <div class="stat-value" id="angryStat">0%</div>
+            <div class="stat-label">Anger</div>
+          </div>
+          <div class="stat-item">
+            <div class="stat-value" id="surpriseStat">0%</div>
+            <div class="stat-label">Surprise</div>
+          </div>
+          <div class="stat-item">
+            <div class="stat-value" id="fearStat">0%</div>
+            <div class="stat-label">Fear</div>
+          </div>
+          <div class="stat-item">
+            <div class="stat-value" id="neutralStat">0%</div>
+            <div class="stat-label">Neutral</div>
+          </div>
+        </div>
+
+        <div class="controls">
+          <button class="btn btn-primary" id="captureBtn">
+            <i class="fas fa-camera-retro"></i> Capture Analysis
+          </button>
+          <button class="btn btn-secondary" id="retryBtn" disabled>
+            <i class="fas fa-sync-alt"></i> Retry
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <footer>
+    <div class="footer-links">
+      <a href="#"><i class="fas fa-shield-alt"></i> Privacy</a>
+      <a href="#"><i class="fas fa-info-circle"></i> About</a>
+      <a href="#"><i class="fas fa-code"></i> API</a>
+      <a href="#"><i class="fas fa-envelope"></i> Contact</a>
+    </div>
+    <p>Emotion AI &copy; 2023 | All processing happens locally in your browser</p>
+  </footer>
+
+  <script>
+    // DOM Elements
+    const video = document.getElementById('video');
+    const emotionDiv = document.getElementById('emotion');
+    const taglineDiv = document.getElementById('tagline');
+    const confidenceMeter = document.getElementById('confidenceMeter');
+    const captureBtn = document.getElementById('captureBtn');
+    const retryBtn = document.getElementById('retryBtn');
+    const toggleCameraBtn = document.getElementById('toggleCamera');
+    const toggleMirrorBtn = document.getElementById('toggleMirror');
+    const flipBtn = document.getElementById('flipBtn');
+    const happyStat = document.getElementById('happyStat');
+    const sadStat = document.getElementById('sadStat');
+    const angryStat = document.getElementById('angryStat');
+    const surpriseStat = document.getElementById('surpriseStat');
+    const fearStat = document.getElementById('fearStat');
+    const neutralStat = document.getElementById('neutralStat');
+    const avatarContainer = document.getElementById('avatarContainer');
+    const themeToggle = document.getElementById('themeToggle');
+    const particlesContainer = document.getElementById('particles');
+    
+    // Emotion data
+    const emotionData = {
+      happiness: {
+        icon: 'fa-face-laugh-beam',
+        tagline: 'Your smile brightens the day! 😊',
+        color: 'happy',
+        avatarClass: 'happy bounce'
+      },
+      sadness: {
+        icon: 'fa-face-sad-tear',
+        tagline: 'Sending you positive vibes 💙',
+        color: 'sad',
+        avatarClass: 'sad float'
+      },
+      anger: {
+        icon: 'fa-face-angry',
+        tagline: 'Take a deep breath and relax 😌',
+        color: 'angry',
+        avatarClass: 'angry'
+      },
+      surprise: {
+        icon: 'fa-face-surprise',
+        tagline: 'Wow! Something surprised you! 😲',
+        color: 'surprised',
+        avatarClass: 'surprised bounce'
+      },
+      fear: {
+        icon: 'fa-face-fearful',
+        tagline: 'Everything will be alright 🛡️',
+        color: 'fearful',
+        avatarClass: 'fearful'
+      },
+      disgust: {
+        icon: 'fa-face-grimace',
+        tagline: 'Eww! What was that? 🤢',
+        color: 'disgusted',
+        avatarClass: 'disgusted'
+      },
+      neutral: {
+        icon: 'fa-face-meh',
+        tagline: 'Calm and composed ✨',
+        color: 'neutral',
+        avatarClass: 'neutral'
+      }
+    };
+
+    // State variables
+    let currentStream = null;
+    let isFrontCamera = true;
+    let isMirrored = true;
+    let isFlipped = false;
+    let detectionInterval = null;
+    let isDarkTheme = false;
+    let lastEmotion = null;
+
+    // Create floating particles
+    function createParticles() {
+      const particleCount = 20;
+      for (let i = 0; i < particleCount; i++) {
+        const particle = document.createElement('div');
+        particle.classList.add('particle');
+        
+        // Random size between 2px and 6px
+        const size = Math.random() * 4 + 2;
+        particle.style.width = `${size}px`;
+        particle.style.height = `${size}px`;
+        
+        // Random position
+        particle.style.left = `${Math.random() * 100}%`;
+        particle.style.bottom = `-${size}px`;
+        
+        // Random animation duration and delay
+        const duration = Math.random() * 10 + 10;
+        const delay = Math.random() * 5;
+        particle.style.animation = `float-particle ${duration}s ${delay}s infinite linear`;
+        
+        // Random opacity
+        particle.style.opacity = Math.random() * 0.5 + 0.1;
+        
+        particlesContainer.appendChild(particle);
+      }
+    }
+
+    // Theme toggle functionality
+    function toggleTheme() {
+      isDarkTheme = !isDarkTheme;
+      if (isDarkTheme) {
+        document.body.classList.add('dark-theme');
+        themeToggle.innerHTML = '<i class="fas fa-sun"></i>';
+        themeToggle.title = 'Switch to light theme';
+      } else {
+        document.body.classList.remove('dark-theme');
+        themeToggle.innerHTML = '<i class="fas fa-moon"></i>';
+        themeToggle.title = 'Switch to dark theme';
+      }
+    }
+
+    // Flip avatar card
+    function flipAvatar() {
+      isFlipped = !isFlipped;
+      avatarContainer.classList.toggle('flipped', isFlipped);
+      flipBtn.innerHTML = isFlipped ? '<i class="fas fa-user"></i>' : '<i class="fas fa-sync-alt"></i>';
+    }
+
+    // Toggle video mirroring
+    function toggleMirror() {
+      isMirrored = !isMirrored;
+      video.style.transform = isMirrored ? 'scaleX(-1)' : 'scaleX(1)';
+      toggleMirrorBtn.innerHTML = isMirrored ? '<i class="fas fa-mirror"></i> Mirror' : '<i class="fas fa-mirror"></i> Unmirror';
+    }
+
+    // Start webcam
+    async function startCamera(facingMode = 'user') {
+      stopCamera();
+      
+      try {
+        const constraints = {
+          video: { 
+            facingMode,
+            width: { ideal: 1280 },
+            height: { ideal: 720 }
+          }
+        };
+        
+        const stream = await navigator.mediaDevices.getUserMedia(constraints);
+        video.srcObject = stream;
+        currentStream = stream;
+        
+        // Apply mirror effect if using front camera
+        if (facingMode === 'user') {
+          video.style.transform = 'scaleX(-1)';
+          isMirrored = true;
+        } else {
+          video.style.transform = 'scaleX(1)';
+          isMirrored = false;
+        }
+        
+        // Start detection loop
+        startDetection();
+      } catch (err) {
+        console.error('Camera error:', err);
+        showError('Could not access camera. Please allow camera permissions.');
+      }
+    }
+
+    // Stop camera stream
+    function stopCamera() {
+      if (currentStream) {
+        currentStream.getTracks().forEach(track => track.stop());
+        currentStream = null;
+      }
+      if (detectionInterval) {
+        clearInterval(detectionInterval);
+        detectionInterval = null;
+      }
+    }
+
+    // Toggle between front and back camera
+    function toggleCamera() {
+      isFrontCamera = !isFrontCamera;
+      startCamera(isFrontCamera ? 'user' : 'environment');
+    }
+
+    // Capture frame
+    function captureImage() {
+      const canvas = document.createElement('canvas');
+      canvas.width = video.videoWidth;
+      canvas.height = video.videoHeight;
+      const ctx = canvas.getContext('2d');
+      
+      // Handle mirroring
+      if (isMirrored) {
+        ctx.translate(canvas.width, 0);
+        ctx.scale(-1, 1);
+      }
+      
+      ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+      return canvas.toDataURL('image/jpeg', 0.8);
+    }
+
+    // Simulate emotion detection (replace with actual API call)
+    async function detectEmotion(imageBase64) {
+      // In a real implementation, you would call your emotion detection API here
+      // For this example, we'll simulate detection with random emotions
+      
+      return new Promise(resolve => {
+        setTimeout(() => {
+          // Simulate API response
+          const emotions = {
+            happiness: Math.floor(Math.random() * 100),
+            sadness: Math.floor(Math.random() * 50),
+            anger: Math.floor(Math.random() * 30),
+            surprise: Math.floor(Math.random() * 40),
+            fear: Math.floor(Math.random() * 20),
+            disgust: Math.floor(Math.random() * 10),
+            neutral: Math.floor(Math.random() * 80)
+          };
+          
+          // Normalize to sum to 100
+          const total = Object.values(emotions).reduce((sum, val) => sum + val, 0);
+          for (const key in emotions) {
+            emotions[key] = Math.round((emotions[key] / total) * 100);
+          }
+          
+          resolve({ faces: [{ attributes: { emotion: emotions } }] });
+        }, 800); // Simulate network delay
+      });
+    }
+
+    // Update UI with emotion data
+    function updateUI(emotions) {
+      // Find top emotion
+      let topEmotion = '';
+      let topValue = 0;
+      
+      for (const [emotion, value] of Object.entries(emotions)) {
+        if (value > topValue) {
+          topValue = value;
+          topEmotion = emotion;
+        }
+      }
+      
+      // Update stats
+      happyStat.textContent = `${emotions.happiness}%`;
+      sadStat.textContent = `${emotions.sadness}%`;
+      angryStat.textContent = `${emotions.anger}%`;
+      surpriseStat.textContent = `${emotions.surprise}%`;
+      fearStat.textContent = `${emotions.fear}%`;
+      neutralStat.textContent = `${emotions.neutral}%`;
+      
+      // Get emotion data
+      const emotion = emotionData[topEmotion] || emotionData.neutral;
+      const confidence = Math.round(topValue);
+      
+      // Only update if emotion changed
+      if (lastEmotion !== topEmotion) {
+        // Update avatar
+        avatarContainer.className = `avatar-container ${emotion.avatarClass}`;
+        
+        // Update UI
+        emotionDiv.innerHTML = `
+          <i class="fas ${emotion.icon} ${emotion.color}"></i>
+          <div>${topEmotion.charAt(0).toUpperCase() + topEmotion.slice(1)} <span style="font-size: 0.8em; opacity: 0.8;">${confidence}%</span></div>
+        `;
+        
+        taglineDiv.textContent = emotion.tagline;
+        
+        // Add emotion class to parent
+        const emotionDisplay = document.querySelector('.emotion-display');
+        emotionDisplay.className = 'emotion-display ' + emotion.color;
+        
+        lastEmotion = topEmotion;
+      }
+      
+      // Update confidence meter with animation
+      confidenceMeter.style.width = `${confidence}%`;
+      
+      retryBtn.disabled = false;
+    }
+
+    // Show no face detected state
+    function showNoFaceDetected() {
+      avatarContainer.className = 'avatar-container no-face';
+      
+      emotionDiv.innerHTML = `
+        <i class="fas fa-user-slash"></i>
+        <div>No Face Detected</div>
+      `;
+      taglineDiv.textContent = 'Please position your face in the camera';
+      confidenceMeter.style.width = '0%';
+      retryBtn.disabled = true;
+      
+      // Reset stats
+      happyStat.textContent = '0%';
+      sadStat.textContent = '0%';
+      angryStat.textContent = '0%';
+      surpriseStat.textContent = '0%';
+      fearStat.textContent = '0%';
+      neutralStat.textContent = '0%';
+      
+      // Reset color
+      document.querySelector('.emotion-display').className = 'emotion-display';
+      
+      lastEmotion = null;
+    }
+
+    // Show error state
+    function showError(message = 'Could not analyze your expression. Please try again.') {
+      avatarContainer.className = 'avatar-container error';
+      
+      emotionDiv.innerHTML = `
+        <i class="fas fa-exclamation-triangle"></i>
+        <div>Error</div>
+      `;
+      taglineDiv.textContent = message;
+      confidenceMeter.style.width = '0%';
+      retryBtn.disabled = false;
+      
+      lastEmotion = null;
+    }
+
+    // Start detection loop
+    function startDetection() {
+      // Clear any existing interval
+      if (detectionInterval) {
+        clearInterval(detectionInterval);
+      }
+      
+      // Set loading state
+      avatarContainer.className = 'avatar-container loading';
+      
+      emotionDiv.innerHTML = '<div class="spinner"></div>';
+      taglineDiv.textContent = 'Analyzing your facial expressions...';
+      confidenceMeter.style.width = '0%';
+      retryBtn.disabled = true;
+      
+      // Start new interval
+      detectionInterval = setInterval(async () => {
+        if (video.readyState === video.HAVE_ENOUGH_DATA) {
+          try {
+            const img = captureImage();
+            const data = await detectEmotion(img);
+            
+            if (data.faces && data.faces.length > 0) {
+              updateUI(data.faces[0].attributes.emotion);
+            } else {
+              showNoFaceDetected();
+            }
+          } catch (error) {
+            console.error('Detection error:', error);
+            showError();
+          }
+        }
+      }, 2000); // Check every 2 seconds
+    }
+
+    // Event listeners
+    captureBtn.addEventListener('click', () => {
+      // Add visual feedback
+      captureBtn.innerHTML = '<i class="fas fa-check"></i> Captured!';
+      setTimeout(() => {
+        captureBtn.innerHTML = '<i class="fas fa-camera-retro"></i> Capture Analysis';
+      }, 2000);
+      
+      // Force immediate detection
+      if (video.readyState === video.HAVE_ENOUGH_DATA) {
+        const img = captureImage();
+        detectEmotion(img).then(data => {
+          if (data.faces && data.faces.length > 0) {
+            updateUI(data.faces[0].attributes.emotion);
+          } else {
+            showNoFaceDetected();
+          }
+        }).catch(showError);
+      }
+    });
+
+    retryBtn.addEventListener('click', () => {
+      startDetection();
+    });
+
+    toggleCameraBtn.addEventListener('click', toggleCamera);
+    toggleMirrorBtn.addEventListener('click', toggleMirror);
+    flipBtn.addEventListener('click', flipAvatar);
+    themeToggle.addEventListener('click', toggleTheme);
+
+    // Initialize
+    window.addEventListener('load', () => {
+      createParticles();
+      startCamera();
+    });
+
+    // Clean up on page unload
+    window.addEventListener('beforeunload', () => {
+      stopCamera();
+    });
+  </script>
+</body>
+</html>

@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Emojify - Emotion Result</title>
+  <link rel="stylesheet" href="/style.css">
+  <style>
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      background: linear-gradient(to right, #e3f2fd, #f3e5f5);
+      text-align: center;
+      padding: 40px;
+    }
+    .result-box {
+      background: #ffffff;
+      border-radius: 20px;
+      box-shadow: 0 8px 30px rgba(0,0,0,0.1);
+      padding: 40px;
+      display: inline-block;
+      max-width: 600px;
+    }
+    img {
+      max-width: 300px;
+      border-radius: 10px;
+      margin-bottom: 20px;
+    }
+    .emoji {
+      font-size: 60px;
+      margin-top: 10px;
+    }
+    .thought {
+      font-size: 1.2rem;
+      margin-top: 15px;
+      color: #444;
+    }
+    .emotion {
+      font-size: 1.5rem;
+      font-weight: bold;
+      color: #333;
+    }
+    .back-btn {
+      margin-top: 25px;
+      padding: 10px 20px;
+      font-size: 1rem;
+      background-color: #6200ea;
+      color: white;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: background 0.3s ease;
+    }
+    .back-btn:hover {
+      background-color: #3700b3;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="result-box">
+    <h1>Here's What We See</h1>
+    <img src="/uploads/<%= imageFilename %>" alt="Uploaded Image" />
+    <div class="emoji"><%= emoji %></div>
+    <div class="emotion">Emotion Detected: <%= emotion.toUpperCase() %></div>
+    <p class="thought"><%= thought %></p>
+
+    <button class="back-btn" onclick="window.location.href='/'">Upload Another Image</button>
+  </div>
+
+  <script>
+    const msg = new SpeechSynthesisUtterance("<%= thought %>");
+    msg.rate = 1;
+    msg.pitch = 1;
+    msg.lang = 'en-US';
+    window.speechSynthesis.speak(msg);
+  </script>
+
+</body>
+</html>
